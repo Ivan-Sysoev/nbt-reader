@@ -1,3 +1,4 @@
 bigtest
 *.nbt
 *.json
+__pycache__
