@@ -49,7 +49,8 @@ def determine_read_func(tag):
         NBT_Tags.TAG_Byte_Array: read_byte_array,
         NBT_Tags.TAG_String: read_string,
         NBT_Tags.TAG_List: read_list,
-        NBT_Tags.TAG_Compound: read_compound
+        NBT_Tags.TAG_Compound: read_compound,
+        NBT_Tags.TAG_End: read_end
     }
     read_func = func_tags.get(tag)
     if not read_func:
@@ -62,19 +63,25 @@ def read_compound(nbt_file):
     type_compound = {}
     print('Start of Compound')
 
-    tag = None
-    while nbt_file.tell() < file_size:
+    while True:
         tag = determine_tag(nbt_file)
         if tag == NBT_Tags.TAG_End:
-            print('End of Compound\n')
-            return type_compound
+            break
 
         tag_name = determine_tag_name(nbt_file)
         tag_data = process_tag(nbt_file, tag)
+
         type_compound[tag_name] = tag_data
 
         print(tag, tag_name, end='\t')
         print(tag_data)
+
+    print('End of Compound\n')
+    return type_compound
+
+def read_end(nbt_file):
+    print("READ END")
+    return None
 
 def read_string(nbt_file):
     str_len = int.from_bytes(nbt_file.read(2))
@@ -110,7 +117,7 @@ def read_byte_array(nbt_file):
     byte_array_len = int.from_bytes(nbt_file.read(4))
     print(f'byte_array_len = {byte_array_len}')
 
-    type_byte_array = [byte for byte in bytearray(nbt_file.read(byte_array_len))]
+    type_byte_array = bytearray(nbt_file.read(byte_array_len))
     return type_byte_array
 
 def read_list(nbt_file):
@@ -128,14 +135,17 @@ def read_nbt_file(nbt_file_path):
         # if read_byte(nbt_file) != NBT_Tags.TAG_Compound.value:
         #     raise RuntimeError('Invalid nbt file; Should begin with TAG_Compound')
 
-        file_size = os.fstat(nbt_file.fileno()).st_size
-        while nbt_file.tell() < file_size:
-            read_compound(nbt_file)
+        tag = determine_tag(nbt_file)
+        if tag != NBT_Tags.TAG_Compound:
+            raise RuntimeError('NBT Data should start with Compound')
+
+        compound_name = determine_tag_name(nbt_file)
+        compound_data = read_compound(nbt_file)
+        print(compound_data)
             
 def process_tag(nbt_file, tag):
     read_func = determine_read_func(tag)
     tag_data = read_func(nbt_file)
-    print(tag_data)
     return tag_data
 
 def main():
