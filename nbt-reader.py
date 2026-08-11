@@ -110,7 +110,7 @@ def read_byte_array(nbt_file):
     byte_array_len = int.from_bytes(nbt_file.read(4))
     print(f'byte_array_len = {byte_array_len}')
 
-    type_byte_array = [byte & 1 for byte in bytearray(fh.read(byte_array_len))]
+    type_byte_array = [byte for byte in bytearray(nbt_file.read(byte_array_len))]
     return type_byte_array
 
 def read_list(nbt_file):
@@ -130,43 +130,13 @@ def read_nbt_file(nbt_file_path):
 
         file_size = os.fstat(nbt_file.fileno()).st_size
         while nbt_file.tell() < file_size:
-            print(read_compound(nbt_file))
+            read_compound(nbt_file)
             
 def process_tag(nbt_file, tag):
-    if tag == NBT_Tags.TAG_String:
-        type_str = read_string(nbt_file)
-        return type_str
-
-    if tag == NBT_Tags.TAG_Long:
-        type_long = read_long(nbt_file)
-        return type_long
-
-    if tag == NBT_Tags.TAG_Byte:
-        type_byte = read_byte(nbt_file)
-        return type_byte
-
-    if tag == NBT_Tags.TAG_Short:
-        type_short = read_short(nbt_file)
-        return type_short
-
-    if tag == NBT_Tags.TAG_Int:
-        type_int = read_int(nbt_file)
-        return type_int
-
-    if tag == NBT_Tags.TAG_Float:
-        type_float = read_float(nbt_file)
-        return type_float
-
-    if tag == NBT_Tags.TAG_Double:
-        type_double = read_double(nbt_file)
-        return type_double
-
-    if tag == NBT_Tags.TAG_Byte_Array:
-        pass
-
-    if tag == NBT_Tags.TAG_List:
-        type_list = read_list(nbt_file)
-        return type_list
+    read_func = determine_read_func(tag)
+    tag_data = read_func(nbt_file)
+    print(tag_data)
+    return tag_data
 
 def main():
     # decompressed_nbt = decompress_nbt(test_nbt)
