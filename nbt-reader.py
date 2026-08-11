@@ -1,4 +1,4 @@
-from os import name
+import os
 import struct
 from enum import Enum
 import gzip
@@ -57,8 +57,24 @@ def determine_read_func(tag):
     return read_func
 
 def read_compound(nbt_file):
-    print('Compound started')
-    return None
+    file_size = os.fstat(nbt_file.fileno()).st_size
+    
+    type_compound = {}
+    print('Start of Compound')
+
+    tag = None
+    while nbt_file.tell() < file_size:
+        tag = determine_tag(nbt_file)
+        if tag == NBT_Tags.TAG_End:
+            print('End of Compound\n')
+            return type_compound
+
+        tag_name = determine_tag_name(nbt_file)
+        tag_data = process_tag(nbt_file, tag)
+        type_compound[tag_name] = tag_data
+
+        print(tag, tag_name, end='\t')
+        print(tag_data)
 
 def read_string(nbt_file):
     str_len = int.from_bytes(nbt_file.read(2))
@@ -90,13 +106,18 @@ def read_float(nbt_file):
     return type_float[0]
 
 def read_byte_array(nbt_file):
-    pass
+    # byte_array_len = read_int(nbt_file)
+    byte_array_len = int.from_bytes(nbt_file.read(4))
+    print(f'byte_array_len = {byte_array_len}')
+
+    type_byte_array = [byte & 1 for byte in bytearray(fh.read(byte_array_len))]
+    return type_byte_array
 
 def read_list(nbt_file):
     elem_tag = determine_tag(nbt_file)
     list_len = int.from_bytes(nbt_file.read(4))
 
-    print(f'elem_type: {elem_tag} list_len: {list_len}')
+    # print(f'elem_type: {elem_tag} list_len: {list_len}')
 
     read_func = determine_read_func(elem_tag)
     type_list = [read_func(nbt_file) for _ in range(list_len)]
@@ -107,16 +128,9 @@ def read_nbt_file(nbt_file_path):
         # if read_byte(nbt_file) != NBT_Tags.TAG_Compound.value:
         #     raise RuntimeError('Invalid nbt file; Should begin with TAG_Compound')
 
-        for _ in range(20):
-            tag = determine_tag(nbt_file)
-            if tag == NBT_Tags.TAG_End:
-                print('End of TAG_Compound')
-                continue
-
-            tag_name = determine_tag_name(nbt_file)
-            print(tag, tag_name, end='\t')
-
-            print(process_tag(nbt_file, tag))
+        file_size = os.fstat(nbt_file.fileno()).st_size
+        while nbt_file.tell() < file_size:
+            print(read_compound(nbt_file))
             
 def process_tag(nbt_file, tag):
     if tag == NBT_Tags.TAG_String:
