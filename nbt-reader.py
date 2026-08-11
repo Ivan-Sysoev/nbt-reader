@@ -1,3 +1,4 @@
+import json
 import os
 import struct
 from enum import Enum
@@ -30,8 +31,8 @@ def determine_tag(nbt_file):
     try:
         byte = read_byte(nbt_file)
         return NBT_Tags(byte)
-    except ValueError:
-        return None
+    except ValueError as e:
+        raise ValueError('Cannot determine tag\n' + e)
 
 def determine_tag_name(nbt_file):
     tag_name_len = int.from_bytes(nbt_file.read(2))
@@ -50,7 +51,6 @@ def determine_read_func(tag):
         NBT_Tags.TAG_String: read_string,
         NBT_Tags.TAG_List: read_list,
         NBT_Tags.TAG_Compound: read_compound,
-        NBT_Tags.TAG_End: read_end
     }
     read_func = func_tags.get(tag)
     if not read_func:
@@ -78,10 +78,6 @@ def read_compound(nbt_file):
 
     print('End of Compound\n')
     return type_compound
-
-def read_end(nbt_file):
-    print("READ END")
-    return None
 
 def read_string(nbt_file):
     str_len = int.from_bytes(nbt_file.read(2))
@@ -141,7 +137,8 @@ def read_nbt_file(nbt_file_path):
 
         compound_name = determine_tag_name(nbt_file)
         compound_data = read_compound(nbt_file)
-        print(compound_data)
+
+    return compound_data
             
 def process_tag(nbt_file, tag):
     read_func = determine_read_func(tag)
@@ -151,7 +148,10 @@ def process_tag(nbt_file, tag):
 def main():
     # decompressed_nbt = decompress_nbt(test_nbt)
     # read_nbt_file(decompressed_nbt)
-    read_nbt_file(test_nbt)
+    nbt_data = read_nbt_file(test_nbt)
+
+    # with open('nbt_data.json', 'w', encoding='utf-8') as json_file:
+    #     json.dump(nbt_data, json_file)
 
 if __name__ == "__main__":
     main()
